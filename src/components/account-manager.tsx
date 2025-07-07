@@ -3,32 +3,109 @@
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { PlusCircle } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import React, { useState } from 'react';
+import { useAccounts, Account } from '@/context/accounts-context';
 
-const accounts = [
-    { platform: 'TikTok', name: '@clipmaster', avatar: 'https://placehold.co/40x40.png?text=CM', id: 'tiktok1', dataAiHint: 'logo abstract' },
-    { platform: 'Instagram', name: 'yourcreative_ig', avatar: 'https://placehold.co/40x40.png?text=YC', id: 'ig1', dataAiHint: 'logo letter' },
-    { platform: 'TikTok', name: '@dancemachine', avatar: 'https://placehold.co/40x40.png?text=DM', id: 'tiktok2', dataAiHint: 'logo robot' },
-];
+function AddAccountDialog({ children }: { children: React.ReactNode }) {
+    const [isOpen, setIsOpen] = useState(false);
+    const [platform, setPlatform] = useState<'TikTok' | 'Instagram' | ''>('');
+    const [name, setName] = useState('');
+    const { addAccount } = useAccounts();
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!platform || !name) return;
+        addAccount({ platform, name });
+        setIsOpen(false);
+        setPlatform('');
+        setName('');
+    };
+
+    return (
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+            <DialogTrigger asChild>
+                {children}
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+                <form onSubmit={handleSubmit}>
+                    <DialogHeader>
+                        <DialogTitle>Add New Account</DialogTitle>
+                        <DialogDescription>
+                            Connect a new TikTok or Instagram account.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="platform" className="text-right">
+                                Platform
+                            </Label>
+                            <Select required onValueChange={(value: 'TikTok' | 'Instagram') => setPlatform(value)} value={platform}>
+                                <SelectTrigger id="platform" className="col-span-3">
+                                    <SelectValue placeholder="Select a platform" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="TikTok">TikTok</SelectItem>
+                                    <SelectItem value="Instagram">Instagram</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="name" className="text-right">
+                                Username
+                            </Label>
+                            <Input
+                                id="name"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                className="col-span-3"
+                                placeholder="@username"
+                                required
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button type="submit" disabled={!platform || !name}>Connect Account</Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+function DisconnectDialog({ account, onDisconnect }: { account: Account, onDisconnect: (id: string) => void }) {
+    return (
+        <AlertDialog>
+            <AlertDialogTrigger asChild>
+                <Button variant="ghost" size="sm">Disconnect</Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        This will disconnect the account <span className="font-semibold">{account.name}</span> from ClipCast.
+                        You can reconnect it at any time.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => onDisconnect(account.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                        Disconnect
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+    );
+}
+
 
 export default function AccountManager() {
-    const { toast } = useToast();
-
-    const handleAddAccount = () => {
-        if (accounts.length >= 5) {
-            toast({
-                variant: 'destructive',
-                title: "Account Limit Reached",
-                description: "You can only connect up to 5 accounts."
-            });
-        } else {
-            toast({
-                title: "Feature Coming Soon!",
-                description: "The ability to add new accounts is not yet implemented."
-            });
-        }
-    };
+    const { accounts, removeAccount } = useAccounts();
 
     return (
         <Card className="shadow-lg">
@@ -38,7 +115,7 @@ export default function AccountManager() {
             </CardHeader>
             <CardContent>
                 <div className="space-y-4">
-                    {accounts.map(account => (
+                    {accounts.length > 0 ? accounts.map(account => (
                         <div key={account.id} className="flex items-center justify-between">
                             <div className="flex items-center gap-4">
                                 <Avatar>
@@ -50,16 +127,20 @@ export default function AccountManager() {
                                     <p className="text-sm text-muted-foreground">{account.platform}</p>
                                 </div>
                             </div>
-                            <Button variant="ghost" size="sm">Disconnect</Button>
+                            <DisconnectDialog account={account} onDisconnect={removeAccount} />
                         </div>
-                    ))}
+                    )) : (
+                        <p className="text-sm text-muted-foreground text-center py-4">No accounts connected yet. Add one below!</p>
+                    )}
                 </div>
             </CardContent>
             <CardFooter>
-                 <Button className="w-full" variant="outline" onClick={handleAddAccount}>
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Add New Account
-                </Button>
+                 <AddAccountDialog>
+                    <Button className="w-full" variant="outline">
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Add New Account
+                    </Button>
+                 </AddAccountDialog>
             </CardFooter>
         </Card>
     )

@@ -1,6 +1,7 @@
 import AccountManager from '@/components/account-manager';
 import ClipCastLogo from '@/components/clipcast-logo';
 import UploadForm from '@/components/upload-form';
+import { AccountsProvider } from '@/context/accounts-context';
 
 export default function Home() {
   return (
@@ -14,11 +15,13 @@ export default function Home() {
             Upload. Connect. Share.
           </p>
         </header>
-
-        <div className="space-y-8">
-          <UploadForm />
-          <AccountManager />
-        </div>
+        
+        <AccountsProvider>
+          <div className="space-y-8">
+            <UploadForm />
+            <AccountManager />
+          </div>
+        </AccountsProvider>
 
         <footer className="text-center mt-16 mb-8">
           <p className="text-sm text-muted-foreground">© {new Date().getFullYear()} ClipCast. All Rights Reserved.</p>

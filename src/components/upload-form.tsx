@@ -10,7 +10,7 @@ import {
   UploadCloud,
   X,
 } from 'lucide-react';
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -41,16 +41,12 @@ import { Textarea } from './ui/textarea';
 import { Checkbox } from './ui/checkbox';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Label } from './ui/label';
+import { useAccounts } from '@/context/accounts-context';
 
 const formSchema = z.object({
   description: z.string().min(1, 'Description is required.'),
   video: z.instanceof(File).refine(file => file.size > 0, 'A video file is required.'),
 });
-
-const mockAccounts = [
-  { id: 'tiktok1', platform: 'TikTok', name: '@clipmaster', avatar: 'https://placehold.co/40x40.png' },
-  { id: 'ig1', platform: 'Instagram', name: 'yourcreative_ig', avatar: 'https://placehold.co/40x40.png' },
-];
 
 export default function UploadForm() {
   const [file, setFile] = useState<File | null>(null);
@@ -59,7 +55,26 @@ export default function UploadForm() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [selectedAccounts, setSelectedAccounts] = useState<string[]>(mockAccounts.map(a => a.id));
+  
+  const { accounts } = useAccounts();
+  const [selectedAccounts, setSelectedAccounts] = useState<string[]>([]);
+
+  // Pre-select all accounts by default and sync selection when accounts change
+  useEffect(() => {
+    const accountIds = accounts.map(a => a.id);
+    setSelectedAccounts(prevSelected => {
+      // Get a set of the current account IDs for quick lookups
+      const currentAccountIds = new Set(accountIds);
+      // Filter the previous selection to only include accounts that still exist
+      const validPrevSelected = prevSelected.filter(id => currentAccountIds.has(id));
+      
+      // Add any new accounts that weren't previously selected
+      const newAccountsToAdd = accountIds.filter(id => !prevSelected.includes(id));
+      
+      return [...validPrevSelected, ...newAccountsToAdd];
+    });
+  }, [accounts]);
+
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -185,7 +200,7 @@ export default function UploadForm() {
         form.reset();
         setFile(null);
         setHashtags([]);
-        setSelectedAccounts(mockAccounts.map(a => a.id));
+        setSelectedAccounts(accounts.map(a => a.id));
 
       } else {
         toast({
@@ -300,21 +315,27 @@ export default function UploadForm() {
 
             <div className="space-y-3">
                 <Label>Connect & Share</Label>
-                <div className="space-y-2">
-                    {mockAccounts.map((account) => (
-                        <div key={account.id} className="flex items-center space-x-3 bg-secondary/50 p-3 rounded-md">
-                            <Checkbox id={account.id} checked={selectedAccounts.includes(account.id)} onCheckedChange={() => handleAccountSelection(account.id)} />
-                            <Avatar className="h-8 w-8">
-                                <AvatarImage src={account.avatar} alt={account.name} data-ai-hint="avatar social media" />
-                                <AvatarFallback>{account.platform.slice(0, 2)}</AvatarFallback>
-                            </Avatar>
-                            <div className="flex-grow">
-                                <Label htmlFor={account.id} className="font-medium">{account.name}</Label>
-                                <p className="text-xs text-muted-foreground">{account.platform}</p>
+                 {accounts.length > 0 ? (
+                    <div className="space-y-2">
+                        {accounts.map((account) => (
+                            <div key={account.id} className="flex items-center space-x-3 bg-secondary/50 p-3 rounded-md">
+                                <Checkbox id={`upload-${account.id}`} checked={selectedAccounts.includes(account.id)} onCheckedChange={() => handleAccountSelection(account.id)} />
+                                <Avatar className="h-8 w-8">
+                                    <AvatarImage src={account.avatar} alt={account.name} data-ai-hint="avatar social media" />
+                                    <AvatarFallback>{account.platform.slice(0, 2)}</AvatarFallback>
+                                </Avatar>
+                                <div className="flex-grow">
+                                    <Label htmlFor={`upload-${account.id}`} className="font-medium">{account.name}</Label>
+                                    <p className="text-xs text-muted-foreground">{account.platform}</p>
+                                </div>
                             </div>
-                        </div>
-                    ))}
-                </div>
+                        ))}
+                    </div>
+                 ) : (
+                    <p className="text-sm text-muted-foreground text-center py-4 bg-secondary/50 rounded-md">
+                        Please add an account in the "Connected Accounts" section below to share your video.
+                    </p>
+                 )}
             </div>
 
             {isUploading && (
@@ -326,7 +347,7 @@ export default function UploadForm() {
             )}
           </CardContent>
           <CardFooter>
-            <Button type="submit" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground" disabled={isUploading || isGenerating}>
+            <Button type="submit" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground" disabled={isUploading || isGenerating || accounts.length === 0}>
               {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Share2 className="mr-2 h-4 w-4" />}
               {isUploading ? 'Sharing...' : 'Upload & Share'}
             </Button>
