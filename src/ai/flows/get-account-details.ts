@@ -18,45 +18,14 @@ export type GetAccountDetailsInput = z.infer<typeof GetAccountDetailsInputSchema
 
 const GetAccountDetailsOutputSchema = z.object({
   followers: z.number().describe('The number of followers for the account.'),
-  dataAiHint: z.string().describe('A two-word hint for generating an avatar image, like "logo abstract" or "gaming mascot".'),
+  avatarUrl: z.string().url().describe("The URL of the user's profile picture."),
 });
 export type GetAccountDetailsOutput = z.infer<typeof GetAccountDetailsOutputSchema>;
 
+export async function getAccountDetails(input: GetAccountDetailsInput): Promise<GetAccountDetailsOutput> {
+  return getAccountDetailsFlow(input);
+}
 
-// This tool simulates fetching data from a live API.
-// In a real application, you would replace the random number generation
-// with a call to the TikTok or Instagram API.
-const getFollowerCountTool = ai.defineTool(
-    {
-        name: 'getFollowerCount',
-        description: 'Gets the follower count for a given social media account.',
-        inputSchema: GetAccountDetailsInputSchema,
-        outputSchema: z.number(),
-    },
-    async ({ platform, username }) => {
-        // Simulate API call variability
-        console.log(`Simulating follower fetch for ${username} on ${platform}...`);
-        await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 1000));
-        return Math.floor(Math.random() * 5000000);
-    }
-);
-
-
-const prompt = ai.definePrompt({
-    name: 'getAccountDetailsPrompt',
-    input: { schema: GetAccountDetailsInputSchema },
-    output: { schema: GetAccountDetailsOutputSchema },
-    tools: [getFollowerCountTool],
-    prompt: `You are a social media account analyst.
-    
-    Given the platform and username, you must perform two tasks:
-    1. Use the getFollowerCount tool to retrieve the number of followers for the account.
-    2. Generate a creative and concise two-word "dataAiHint" for an avatar based on the username. For example, if the username is '@travelbug', a good hint would be 'insect world'. If it's '@gamerz', a hint could be 'gaming mascot'.
-    
-    Platform: {{{platform}}}
-    Username: {{{username}}}
-    `,
-});
 
 const getAccountDetailsFlow = ai.defineFlow(
   {
@@ -64,16 +33,46 @@ const getAccountDetailsFlow = ai.defineFlow(
     inputSchema: GetAccountDetailsInputSchema,
     outputSchema: GetAccountDetailsOutputSchema,
   },
-  async (input) => {
-    const { output } = await prompt(input);
-    if (!output) {
-      throw new Error('Failed to get account details from AI.');
-    }
-    return output;
+  async ({ platform, username }) => {
+    console.log(`Fetching details for ${username} on ${platform}...`);
+    
+    // =================================================================
+    // DEVELOPER TODO: Replace this mock data with a real API call.
+    // =================================================================
+    //
+    // 1. You would need to use an SDK or `fetch` to call the respective
+    //    platform's API (e.g., TikTok API, Instagram Graph API).
+    //
+    // 2. This would require handling authentication (e.g., OAuth2) to get
+    //    an access token for the user. You'd store and use that token here.
+    //
+    // 3. You would then parse the response from the API to extract the
+    //    follower count and the profile picture URL.
+    //
+    // Example (pseudo-code):
+    //
+    // const accessToken = await getAccessTokenForUser(username);
+    // const response = await fetch(
+    //   `https://api.instagram.com/v1/users/self?access_token=${accessToken}`
+    // );
+    // const data = await response.json();
+    //
+    // return {
+    //   followers: data.counts.followed_by,
+    //   avatarUrl: data.profile_picture,
+    // };
+    //
+    // For now, we'll return random simulated data.
+    
+    // Simulate API call variability
+    await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 1000));
+    
+    const simulatedFollowers = Math.floor(Math.random() * 5000000);
+    const simulatedAvatarUrl = `https://placehold.co/40x40.png?text=${username.replace('@','').substring(0, 2).toUpperCase()}`;
+
+    return {
+      followers: simulatedFollowers,
+      avatarUrl: simulatedAvatarUrl,
+    };
   }
 );
-
-
-export async function getAccountDetails(input: GetAccountDetailsInput): Promise<GetAccountDetailsOutput> {
-  return getAccountDetailsFlow(input);
-}

@@ -168,7 +168,7 @@ export default function UploadForm() {
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     if (selectedAccounts.length === 0) {
-      toast({ variant: 'destructive', title: 'No accounts selected', description: 'Please select at least one account to upload to.' });
+      toast({ variant: 'destructive', title: 'No accounts selected', description: 'Please select at least one account to share to.' });
       return;
     }
     
@@ -355,9 +355,9 @@ export default function UploadForm() {
             )}
           </CardContent>
           <CardFooter>
-            <Button type="submit" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground" disabled={isUploading || isGenerating || accounts.length === 0}>
+            <Button type="submit" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground" disabled={isUploading || isGenerating || accounts.length === 0 || selectedAccounts.length === 0}>
               {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Share2 className="mr-2 h-4 w-4" />}
-              {isUploading ? 'Sharing...' : 'Upload & Share'}
+              {isUploading ? 'Sharing...' : `Upload & Share to ${selectedAccounts.length} Account(s)`}
             </Button>
           </CardFooter>
         </form>

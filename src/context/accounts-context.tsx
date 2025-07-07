@@ -22,29 +22,28 @@ export type Account = {
   platform: 'TikTok' | 'Instagram';
   name: string;
   avatar: string;
-  dataAiHint: string;
   followers: string;
 };
 
 type AccountsContextType = {
   accounts: Account[];
-  addAccount: (account: Omit<Account, 'id' | 'avatar' | 'dataAiHint' | 'followers'>) => Promise<void>;
+  addAccount: (account: Omit<Account, 'id' | 'avatar' | 'followers'>) => Promise<void>;
   removeAccount: (accountId: string) => void;
 };
 
 const AccountsContext = createContext<AccountsContextType | undefined>(undefined);
 
 const initialAccounts: Account[] = [
-    { platform: 'TikTok', name: '@clipmaster', avatar: 'https://placehold.co/40x40.png?text=CM', id: 'tiktok1', dataAiHint: 'logo abstract', followers: formatFollowers(1200000) },
-    { platform: 'Instagram', name: 'yourcreative_ig', avatar: 'https://placehold.co/40x40.png?text=YC', id: 'ig1', dataAiHint: 'logo letter', followers: formatFollowers(345000) },
-    { platform: 'TikTok', name: '@dancemachine', avatar: 'https://placehold.co/40x40.png?text=DM', id: 'tiktok2', dataAiHint: 'logo robot', followers: formatFollowers(8700) },
+    { platform: 'TikTok', name: '@clipmaster', avatar: 'https://placehold.co/40x40.png', id: 'tiktok1', followers: formatFollowers(1200000) },
+    { platform: 'Instagram', name: 'yourcreative_ig', avatar: 'https://placehold.co/40x40.png', id: 'ig1', followers: formatFollowers(345000) },
+    { platform: 'TikTok', name: '@dancemachine', avatar: 'https://placehold.co/40x40.png', id: 'tiktok2', followers: formatFollowers(8700) },
 ];
 
 export const AccountsProvider = ({ children }: { children: ReactNode }) => {
   const [accounts, setAccounts] = useState<Account[]>(initialAccounts);
   const { toast } = useToast();
 
-  const addAccount = async (account: Omit<Account, 'id' | 'avatar' | 'dataAiHint' | 'followers'>) => {
+  const addAccount = async (account: Omit<Account, 'id' | 'avatar' | 'followers'>) => {
     if (accounts.length >= 5) {
       toast({
         variant: 'destructive',
@@ -69,8 +68,7 @@ export const AccountsProvider = ({ children }: { children: ReactNode }) => {
         const newAccount: Account = {
           ...account,
           id: `${account.platform.toLowerCase()}-${Date.now()}`,
-          avatar: `https://placehold.co/40x40.png?text=${account.name.replace('@','').substring(0, 2).toUpperCase()}`,
-          dataAiHint: details.dataAiHint,
+          avatar: details.avatarUrl,
           followers: formatFollowers(details.followers),
         };
 

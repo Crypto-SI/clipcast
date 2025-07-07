@@ -132,7 +132,7 @@ export default function AccountManager() {
                         <div key={account.id} className="flex items-center justify-between">
                             <div className="flex items-center gap-4">
                                 <Avatar>
-                                    <AvatarImage src={account.avatar} alt={account.name} data-ai-hint={account.dataAiHint} />
+                                    <AvatarImage src={account.avatar} alt={account.name} />
                                     <AvatarFallback>{account.platform.substring(0, 1)}</AvatarFallback>
                                 </Avatar>
                                 <div>
