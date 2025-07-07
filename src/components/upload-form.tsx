@@ -11,7 +11,7 @@ import {
   Users,
   X,
 } from 'lucide-react';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -51,6 +51,7 @@ const formSchema = z.object({
 
 export default function UploadForm() {
   const [file, setFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [hashtags, setHashtags] = useState<string[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -85,12 +86,32 @@ export default function UploadForm() {
     defaultValues: { description: '' },
   });
   
+  // Effect to clean up the object URL when the component unmounts or previewUrl changes
+  useEffect(() => {
+    return () => {
+        if (previewUrl) {
+            URL.revokeObjectURL(previewUrl);
+        }
+    };
+  }, [previewUrl]);
+
   const handleFileChange = (selectedFile: File | null) => {
+    // Clean up previous preview URL if it exists
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(null);
+    }
+    
     if (selectedFile) {
         if (selectedFile.type.startsWith('video/')) {
             setFile(selectedFile);
             form.setValue('video', selectedFile, { shouldValidate: true });
+            const url = URL.createObjectURL(selectedFile);
+            setPreviewUrl(url);
         } else {
+            setFile(null);
+            // @ts-ignore
+            form.setValue('video', undefined, { shouldValidate: true });
             toast({
               variant: 'destructive',
               title: 'Invalid File Type',
@@ -115,6 +136,10 @@ export default function UploadForm() {
   const clearFile = () => {
     setFile(null);
     if(fileInputRef.current) fileInputRef.current.value = "";
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(null);
+    }
     // @ts-ignore zod is expecting a File, but we're clearing it.
     form.setValue('video', undefined, { shouldValidate: true });
   }
@@ -166,6 +191,14 @@ export default function UploadForm() {
     );
   }
 
+  const resetFormState = () => {
+    form.reset();
+    clearFile();
+    setHashtags([]);
+    // Reselect all accounts after reset
+    setSelectedAccounts(accounts.map(a => a.id));
+  };
+
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     if (selectedAccounts.length === 0) {
       toast({ variant: 'destructive', title: 'No accounts selected', description: 'Please select at least one account to share to.' });
@@ -198,10 +231,7 @@ export default function UploadForm() {
           description: 'Your video has been shared successfully.',
           icon: <CheckCircle2 className="h-5 w-5 text-green-500" />,
         });
-        form.reset();
-        setFile(null);
-        setHashtags([]);
-        setSelectedAccounts(accounts.map(a => a.id));
+        resetFormState();
 
       } else {
         toast({
@@ -234,39 +264,47 @@ export default function UploadForm() {
                         <FormLabel>Video File</FormLabel>
                         <FormControl>
                             <div>
-                                <div
-                                    className={cn(
-                                    "relative flex flex-col items-center justify-center w-full p-8 border-2 border-dashed rounded-lg cursor-pointer hover:bg-secondary transition-colors",
-                                    isDragOver && "border-primary bg-secondary"
-                                    )}
-                                    onClick={() => fileInputRef.current?.click()}
-                                    onDragOver={(e) => handleDragEvents(e, true)}
-                                    onDragLeave={(e) => handleDragEvents(e, false)}
-                                    onDrop={handleDrop}
-                                >
-                                    <UploadCloud className="w-10 h-10 text-muted-foreground mb-2" />
-                                    <p className="text-center text-muted-foreground">
-                                    <span className="font-semibold text-primary">Click to upload</span> or drag and drop
-                                    </p>
-                                    <p className="text-xs text-muted-foreground">MP4, MOV, AVI (max 100MB)</p>
-                                    <Input
-                                    {...field}
-                                    ref={fileInputRef}
-                                    type="file"
-                                    className="hidden"
-                                    accept="video/*"
-                                    onChange={(e) => handleFileChange(e.target.files?.[0] || null)}
-                                    />
-                                </div>
-                                {file && (
-                                    <div className="mt-4 flex items-center justify-between p-3 bg-secondary rounded-lg">
-                                        <div className='flex items-center gap-3'>
-                                            <FileVideo className="w-5 h-5 text-primary" />
-                                            <span className="text-sm font-medium truncate max-w-xs">{file.name}</span>
+                                {!file && (
+                                    <div
+                                        className={cn(
+                                        "relative flex flex-col items-center justify-center w-full p-8 border-2 border-dashed rounded-lg cursor-pointer hover:bg-secondary transition-colors",
+                                        isDragOver && "border-primary bg-secondary"
+                                        )}
+                                        onClick={() => fileInputRef.current?.click()}
+                                        onDragOver={(e) => handleDragEvents(e, true)}
+                                        onDragLeave={(e) => handleDragEvents(e, false)}
+                                        onDrop={handleDrop}
+                                    >
+                                        <UploadCloud className="w-10 h-10 text-muted-foreground mb-2" />
+                                        <p className="text-center text-muted-foreground">
+                                        <span className="font-semibold text-primary">Click to upload</span> or drag and drop
+                                        </p>
+                                        <p className="text-xs text-muted-foreground">MP4, MOV, AVI (max 100MB)</p>
+                                        <Input
+                                        {...field}
+                                        ref={fileInputRef}
+                                        type="file"
+                                        className="hidden"
+                                        accept="video/*"
+                                        value={undefined} // Controlled by state
+                                        onChange={(e) => handleFileChange(e.target.files?.[0] || null)}
+                                        />
+                                    </div>
+                                )}
+                                {previewUrl && file && (
+                                    <div className="mt-2">
+                                        <div className="aspect-video w-full rounded-lg overflow-hidden border bg-black">
+                                            <video src={previewUrl} controls className="w-full h-full object-contain" />
                                         </div>
-                                        <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={clearFile}>
-                                            <X className="w-4 h-4" />
-                                        </Button>
+                                        <div className="mt-2 flex items-center justify-between p-2 bg-secondary/50 rounded-lg">
+                                            <div className='flex items-center gap-2 overflow-hidden'>
+                                                <FileVideo className="w-4 h-4 text-primary flex-shrink-0" />
+                                                <span className="text-sm font-medium truncate">{file.name}</span>
+                                            </div>
+                                            <Button type="button" variant="ghost" size="icon" className="h-7 w-7 flex-shrink-0" onClick={clearFile}>
+                                                <X className="w-4 h-4" />
+                                            </Button>
+                                        </div>
                                     </div>
                                 )}
                             </div>
