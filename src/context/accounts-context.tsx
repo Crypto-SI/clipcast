@@ -3,33 +3,47 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
+// Helper to format large numbers
+function formatFollowers(num: number): string {
+    if (num >= 1000000) {
+        const formatted = (num / 1000000).toFixed(1);
+        return (formatted.endsWith('.0') ? formatted.slice(0, -2) : formatted) + 'M';
+    }
+    if (num >= 1000) {
+        const formatted = (num / 1000).toFixed(1);
+        return (formatted.endsWith('.0') ? formatted.slice(0, -2) : formatted) + 'K';
+    }
+    return num.toString();
+}
+
 export type Account = {
   id: string;
   platform: 'TikTok' | 'Instagram';
   name: string;
   avatar: string;
   dataAiHint: string;
+  followers: string;
 };
 
 type AccountsContextType = {
   accounts: Account[];
-  addAccount: (account: Omit<Account, 'id' | 'avatar' | 'dataAiHint'>) => void;
+  addAccount: (account: Omit<Account, 'id' | 'avatar' | 'dataAiHint' | 'followers'>) => void;
   removeAccount: (accountId: string) => void;
 };
 
 const AccountsContext = createContext<AccountsContextType | undefined>(undefined);
 
 const initialAccounts: Account[] = [
-    { platform: 'TikTok', name: '@clipmaster', avatar: 'https://placehold.co/40x40.png?text=CM', id: 'tiktok1', dataAiHint: 'logo abstract' },
-    { platform: 'Instagram', name: 'yourcreative_ig', avatar: 'https://placehold.co/40x40.png?text=YC', id: 'ig1', dataAiHint: 'logo letter' },
-    { platform: 'TikTok', name: '@dancemachine', avatar: 'https://placehold.co/40x40.png?text=DM', id: 'tiktok2', dataAiHint: 'logo robot' },
+    { platform: 'TikTok', name: '@clipmaster', avatar: 'https://placehold.co/40x40.png?text=CM', id: 'tiktok1', dataAiHint: 'logo abstract', followers: formatFollowers(1200000) },
+    { platform: 'Instagram', name: 'yourcreative_ig', avatar: 'https://placehold.co/40x40.png?text=YC', id: 'ig1', dataAiHint: 'logo letter', followers: formatFollowers(345000) },
+    { platform: 'TikTok', name: '@dancemachine', avatar: 'https://placehold.co/40x40.png?text=DM', id: 'tiktok2', dataAiHint: 'logo robot', followers: formatFollowers(8700) },
 ];
 
 export const AccountsProvider = ({ children }: { children: ReactNode }) => {
   const [accounts, setAccounts] = useState<Account[]>(initialAccounts);
   const { toast } = useToast();
 
-  const addAccount = (account: Omit<Account, 'id' | 'avatar' | 'dataAiHint'>) => {
+  const addAccount = (account: Omit<Account, 'id' | 'avatar' | 'dataAiHint' | 'followers'>) => {
     if (accounts.length >= 5) {
       toast({
         variant: 'destructive',
@@ -53,6 +67,7 @@ export const AccountsProvider = ({ children }: { children: ReactNode }) => {
       id: `${account.platform.toLowerCase()}-${Date.now()}`,
       avatar: `https://placehold.co/40x40.png?text=${account.name.replace('@','').substring(0, 2).toUpperCase()}`,
       dataAiHint: 'logo social',
+      followers: formatFollowers(Math.floor(Math.random() * 5000000)),
     };
     setAccounts(prev => [...prev, newAccount]);
     toast({

@@ -8,7 +8,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, Users } from 'lucide-react';
 import React, { useState } from 'react';
 import { useAccounts, Account } from '@/context/accounts-context';
 
@@ -124,7 +124,14 @@ export default function AccountManager() {
                                 </Avatar>
                                 <div>
                                     <p className="font-semibold">{account.name}</p>
-                                    <p className="text-sm text-muted-foreground">{account.platform}</p>
+                                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                        <span>{account.platform}</span>
+                                        <span className="text-xs">•</span>
+                                        <div className="flex items-center gap-1">
+                                            <Users className="h-3 w-3" />
+                                            <span>{account.followers} Followers</span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                             <DisconnectDialog account={account} onDisconnect={removeAccount} />

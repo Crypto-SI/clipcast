@@ -8,6 +8,7 @@ import {
   Share2,
   Sparkles,
   UploadCloud,
+  Users,
   X,
 } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -324,9 +325,16 @@ export default function UploadForm() {
                                     <AvatarImage src={account.avatar} alt={account.name} data-ai-hint="avatar social media" />
                                     <AvatarFallback>{account.platform.slice(0, 2)}</AvatarFallback>
                                 </Avatar>
-                                <div className="flex-grow">
-                                    <Label htmlFor={`upload-${account.id}`} className="font-medium">{account.name}</Label>
-                                    <p className="text-xs text-muted-foreground">{account.platform}</p>
+                                <div className="flex-grow cursor-pointer" onClick={() => handleAccountSelection(account.id)}>
+                                    <Label htmlFor={`upload-${account.id}`} className="font-medium cursor-pointer">{account.name}</Label>
+                                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                        <span>{account.platform}</span>
+                                        <span className="text-xs">•</span>
+                                        <div className="flex items-center gap-1">
+                                            <Users className="h-3 w-3" />
+                                            <span>{account.followers} Followers</span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         ))}
