@@ -8,7 +8,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { PlusCircle, Users } from 'lucide-react';
+import { Loader2, PlusCircle, Users } from 'lucide-react';
 import React, { useState } from 'react';
 import { useAccounts, Account } from '@/context/accounts-context';
 
@@ -16,15 +16,24 @@ function AddAccountDialog({ children }: { children: React.ReactNode }) {
     const [isOpen, setIsOpen] = useState(false);
     const [platform, setPlatform] = useState<'TikTok' | 'Instagram' | ''>('');
     const [name, setName] = useState('');
+    const [isConnecting, setIsConnecting] = useState(false);
     const { addAccount } = useAccounts();
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!platform || !name) return;
-        addAccount({ platform, name });
-        setIsOpen(false);
-        setPlatform('');
-        setName('');
+        if (!platform || !name || isConnecting) return;
+        
+        setIsConnecting(true);
+        try {
+            await addAccount({ platform, name });
+            setIsOpen(false);
+            setPlatform('');
+            setName('');
+        } catch (error) {
+            // Toast is handled in the context
+        } finally {
+            setIsConnecting(false);
+        }
     };
 
     return (
@@ -45,7 +54,7 @@ function AddAccountDialog({ children }: { children: React.ReactNode }) {
                             <Label htmlFor="platform" className="text-right">
                                 Platform
                             </Label>
-                            <Select required onValueChange={(value: 'TikTok' | 'Instagram') => setPlatform(value)} value={platform}>
+                            <Select required onValueChange={(value: 'TikTok' | 'Instagram') => setPlatform(value)} value={platform} disabled={isConnecting}>
                                 <SelectTrigger id="platform" className="col-span-3">
                                     <SelectValue placeholder="Select a platform" />
                                 </SelectTrigger>
@@ -66,11 +75,15 @@ function AddAccountDialog({ children }: { children: React.ReactNode }) {
                                 className="col-span-3"
                                 placeholder="@username"
                                 required
+                                disabled={isConnecting}
                             />
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button type="submit" disabled={!platform || !name}>Connect Account</Button>
+                        <Button type="submit" disabled={!platform || !name || isConnecting}>
+                            {isConnecting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            {isConnecting ? 'Connecting...' : 'Connect Account'}
+                        </Button>
                     </DialogFooter>
                 </form>
             </DialogContent>
