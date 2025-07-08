@@ -23,11 +23,15 @@ export type Account = {
   name: string;
   avatar: string;
   followers: string;
+  // TikTok-specific tokens (optional for Instagram)
+  access_token?: string;
+  refresh_token?: string;
+  open_id?: string;
 };
 
 type AccountsContextType = {
   accounts: Account[];
-  addAccount: (account: Omit<Account, 'id' | 'avatar' | 'followers'>) => Promise<void>;
+  addAccount: (account: Omit<Account, 'id' | 'avatar' | 'followers'> & Partial<Pick<Account, 'access_token' | 'refresh_token' | 'open_id'>>) => Promise<void>;
   removeAccount: (accountId: string) => void;
 };
 
@@ -43,7 +47,9 @@ export const AccountsProvider = ({ children }: { children: ReactNode }) => {
   const [accounts, setAccounts] = useState<Account[]>(initialAccounts);
   const { toast } = useToast();
 
-  const addAccount = async (account: Omit<Account, 'id' | 'avatar' | 'followers'>) => {
+  const addAccount = async (
+    account: Omit<Account, 'id' | 'avatar' | 'followers'> & Partial<Pick<Account, 'access_token' | 'refresh_token' | 'open_id'>>
+  ) => {
     if (accounts.length >= 5) {
       toast({
         variant: 'destructive',
@@ -64,21 +70,20 @@ export const AccountsProvider = ({ children }: { children: ReactNode }) => {
 
     try {
         const details = await getAccountDetails({ platform: account.platform, username: account.name });
-        
         const newAccount: Account = {
           ...account,
           id: `${account.platform.toLowerCase()}-${Date.now()}`,
           avatar: details.avatarUrl,
           followers: formatFollowers(details.followers),
+          access_token: account.access_token,
+          refresh_token: account.refresh_token,
+          open_id: account.open_id,
         };
-
         setAccounts(prev => [...prev, newAccount]);
-        
         toast({
             title: 'Account Connected!',
             description: `${account.name} has been successfully added.`,
         });
-
     } catch (error) {
         console.error('Failed to get account details:', error);
         toast({
@@ -86,7 +91,6 @@ export const AccountsProvider = ({ children }: { children: ReactNode }) => {
             title: 'Connection Failed',
             description: 'Could not retrieve account details from AI. Please try again.',
         });
-        // Re-throw the error so the component knows the operation failed
         throw error;
     }
   };

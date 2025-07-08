@@ -1,0 +1,102 @@
+1. High‑Level Objective
+
+Generate production‑ready code that lets creators upload short‑form videos to Instagram & TikTok quickly, safely, and with clear feedback.
+
+2. Essential Code & Architecture
+
+Framework: Next.js 15 (App Router) + TypeScript 5
+
+Styling: TailwindCSS 3
+
+Forms & validation: React Hook Form + Zod
+
+State: React Query 5 for async mutations
+
+SDK: @clipcast/sdk@^1.2.3 – must wrap all platform calls
+
+APIs:
+
+Instagram Graph API v19.0 (Resumable Upload)
+
+TikTok v2 Video Upload API (multipart + resumable)
+
+3. Deprecated / Forbidden
+
+TikTok SDK v1.x imports
+
+Direct fetch without typed client
+
+Static file uploads ≥ 25 MB without chunking
+
+UI polling loops – prefer WebSocket progress events
+
+any type or implicit any
+
+4. Recommended Patterns
+
+4.1 Instagram Upload
+
+import { igUpload } from "@clipcast/sdk";
+
+await igUpload({
+  token: user.ig.token,
+  file,
+  caption: form.caption,
+});
+
+4.2 TikTok Chunked Upload (≥ 25 MB)
+
+import { tiktokChunkedUpload } from "@clipcast/sdk";
+
+const { jobId } = await tiktokChunkedUpload({
+  token: user.tt.token,
+  file,
+  description: form.caption,
+  onProgress: setProgress, // 0–100
+});
+
+Each helper returns a typed result object with status, mediaId, and error.
+
+5. Verification Checklist
+
+
+
+6. Common Pitfalls → Solutions
+
+Pitfall
+
+Solution
+
+Mixing IG & TikTok logic in one file
+
+Separate platform/instagram & platform/tiktok modules
+
+Dropping auth on long uploads
+
+Use incremental token refresh in SDK
+
+Freezing UI during 4K uploads
+
+Stream chunks in Web Worker
+
+7. Rule Organization
+
+upload.mdc – core upload flow (this file)
+
+auth.mdc – OAuth & token refresh
+
+ui.mdc – UX, i18n, accessibility
+
+ci.mdc – lint, tests, pre‑commit
+
+8. Testing Prompts
+
+“Upload a 60 s 4K mp4 to Instagram Reels”
+
+“Chunk‑upload a 500 MB mov to TikTok with progress bar”
+
+“Refresh IG token if expired during upload”
+
+9. Maintenance
+
+Update SDK & API version numbers immediately on release. Remove deprecated patterns within one sprint.

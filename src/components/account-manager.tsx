@@ -21,14 +21,16 @@ function AddAccountDialog({ children }: { children: React.ReactNode }) {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!platform || !name || isConnecting) return;
-        
+        if (!platform || (platform === 'Instagram' && !name) || isConnecting) return;
         setIsConnecting(true);
         try {
-            await addAccount({ platform, name });
-            setIsOpen(false);
-            setPlatform('');
-            setName('');
+            if (platform === 'Instagram') {
+                await addAccount({ platform, name });
+                setIsOpen(false);
+                setPlatform('');
+                setName('');
+            }
+            // TikTok handled by OAuth
         } catch (error) {
             // Toast is handled in the context
         } finally {
@@ -64,26 +66,39 @@ function AddAccountDialog({ children }: { children: React.ReactNode }) {
                                 </SelectContent>
                             </Select>
                         </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="name" className="text-right">
-                                Username
-                            </Label>
-                            <Input
-                                id="name"
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
-                                className="col-span-3"
-                                placeholder="@username"
-                                required
-                                disabled={isConnecting}
-                            />
-                        </div>
+                        {platform === 'Instagram' && (
+                          <div className="grid grid-cols-4 items-center gap-4">
+                              <Label htmlFor="name" className="text-right">
+                                  Username
+                              </Label>
+                              <Input
+                                  id="name"
+                                  value={name}
+                                  onChange={(e) => setName(e.target.value)}
+                                  className="col-span-3"
+                                  placeholder="@username"
+                                  required
+                                  disabled={isConnecting}
+                              />
+                          </div>
+                        )}
+                        {platform === 'TikTok' && (
+                          <div className="col-span-4 flex justify-end">
+                            <a href="/api/auth/tiktok/login">
+                              <Button type="button" variant="default" className="w-full">
+                                Connect with TikTok
+                              </Button>
+                            </a>
+                          </div>
+                        )}
                     </div>
                     <DialogFooter>
-                        <Button type="submit" disabled={!platform || !name || isConnecting}>
-                            {isConnecting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            {isConnecting ? 'Connecting...' : 'Connect Account'}
-                        </Button>
+                        {platform === 'Instagram' && (
+                          <Button type="submit" disabled={!platform || !name || isConnecting}>
+                              {isConnecting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                              {isConnecting ? 'Connecting...' : 'Connect Account'}
+                          </Button>
+                        )}
                     </DialogFooter>
                 </form>
             </DialogContent>
